@@ -2,6 +2,16 @@
 
 This guide explains how `PDF-Extract-Kit` works and how it can be integrated into the [DigitalMehandis_V5.0](https://github.com/RandomCreatives/DigitalMehandis_V5.0) project to automate data extraction from construction drawings.
 
+## 0. Integration vs. Re-creation
+
+A common question is whether to **re-create** the features of `PDF-Extract-Kit` directly inside `DigitalMehandis` or have the two repositories **communicate**.
+
+**Recommendation: Integration (Communication)**
+You should **integrate** `PDF-Extract-Kit` as a backend service dependency rather than re-creating it.
+- **Complexity**: PDF-Extract-Kit relies on complex, heavy-weight ML models (LayoutLMv3, YOLOv10, PaddleOCR). Re-creating these within your main app would make your codebase difficult to maintain.
+- **Specialization**: Keeping them separate allows your main app (EthioQS) to focus on quantity surveying logic, while PDF-Extract-Kit focuses on document analysis.
+- **Resource Management**: Extraction requires high CPU/GPU power. Integration allows you to host the Extraction Service on a separate GPU-optimized server while keeping your web server lightweight.
+
 ---
 
 ## 1. How PDF-Extract-Kit Works
@@ -89,3 +99,20 @@ Construction drawings often include schedules in table format.
 2. **Model Weights**: Download pretrained models (LayoutLMv3, PaddleOCR, etc.) to a shared volume.
 3. **API Endpoint**: Create a FastAPI endpoint `POST /api/v1/extract` that accepts a file ID and triggers the `ExtractionService`.
 4. **Data Mapping**: Write a parser to map the raw OCR JSON output to the DigitalMehandis database schema (e.g., mapping "Sheet No" text to the `drawing.sheet_number` column).
+
+---
+
+## 5. Proof-of-Concept (PoC)
+
+We have provided a runnable PoC in the `project/digitalmehandis_poc/` directory to demonstrate exactly how the code should look in your backend.
+
+### Files:
+- **`service.py`**: A clean wrapper that initializes the models once and provides methods to process drawings and extract specific metadata like "Sheet Number".
+- **`main.py`**: A FastAPI implementation showing how to use `BackgroundTasks` to process drawings without blocking the user interface.
+
+### Running the PoC (Conceptual):
+```bash
+# From the root directory
+export PYTHONPATH=$PYTHONPATH:.
+uvicorn project.digitalmehandis_poc.main:app --reload
+```
